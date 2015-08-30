@@ -1,6 +1,11 @@
 //-------------------------------------------------------------------
 //
 // Sous Vide Controller
+//
+// Adopted 08.2015 by Stephan Martin www.designer2k2.at 
+// Fits now the cheap LCD Keypad Shields.
+// 
+// Original by:
 // Bill Earl - for Adafruit Industries
 //
 // Based on the Arduino PID and PID AutoTune Libraries 
@@ -13,8 +18,9 @@
 
 // Libraries for the Adafruit RGB/LCD Shield
 #include <Wire.h>
-#include <Adafruit_MCP23017.h>
-#include <Adafruit_RGBLCDShield.h>
+//#include <Adafruit_MCP23017.h>
+//#include <Adafruit_RGBLCDShield.h>
+#include <LiquidCrystal.h>
 
 // Libraries for the DS18B20 Temperature Sensor
 #include <OneWire.h>
@@ -23,12 +29,13 @@
 // So we can save and retrieve settings
 #include <EEPROM.h>
 
+#include <Arduino.h>
 // ************************************************
 // Pin definitions
 // ************************************************
 
 // Output Relay
-#define RelayPin 7
+#define RelayPin 13
 
 // One-Wire Temperature Sensor
 // (Use GPIO pins for power/ground to simplify the wiring)
@@ -82,17 +89,13 @@ PID_ATune aTune(&Input, &Output);
 // DiSplay Variables and constants
 // ************************************************
 
-Adafruit_RGBLCDShield lcd = Adafruit_RGBLCDShield();
-// These #defines make it easy to set the backlight color
-#define RED 0x1
-#define YELLOW 0x3
-#define GREEN 0x2
-#define TEAL 0x6
-#define BLUE 0x4
-#define VIOLET 0x5
-#define WHITE 0x7
-
-#define BUTTON_SHIFT BUTTON_SELECT
+LiquidCrystal lcd(8, 9, 4, 5, 6, 7);
+#define BUTTON_UP 0x08
+#define BUTTON_DOWN 0x04
+#define BUTTON_LEFT 0x10
+#define BUTTON_RIGHT 0x02
+#define BUTTON_SELECT 0x01
+#define ERROR_WINDOW 50
 
 unsigned long lastInput = 0; // last button press
 
@@ -155,8 +158,8 @@ void setup()
    lcd.begin(16, 2);
    lcd.createChar(1, degree); // create degree symbol from the binary
    
-   lcd.setBacklight(VIOLET);
-   lcd.print(F("    Adafruit"));
+   //lcd.setBacklight(VIOLET);
+   lcd.print(F("   designer2k2.at"));
    lcd.setCursor(0, 1);
    lcd.print(F("   Sous Vide!"));
 
@@ -244,9 +247,9 @@ void loop()
 void Off()
 {
    myPID.SetMode(MANUAL);
-   lcd.setBacklight(0);
+   //lcd.setBacklight(0);
    digitalWrite(RelayPin, LOW);  // make sure it is off
-   lcd.print(F("    Adafruit"));
+   lcd.print(F(" designer2k2.at"));
    lcd.setCursor(0, 1);
    lcd.print(F("   Sous Vide!"));
    uint8_t buttons = 0;
@@ -273,17 +276,18 @@ void Off()
 // ************************************************
 void Tune_Sp()
 {
-   lcd.setBacklight(TEAL);
+   //lcd.setBacklight(TEAL);
    lcd.print(F("Set Temperature:"));
    uint8_t buttons = 0;
+   float increment = 0.1;
    while(true)
    {
       buttons = ReadButtons();
 
-      float increment = 0.1;
-      if (buttons & BUTTON_SHIFT)
+      
+      if (buttons & BUTTON_SELECT)
       {
-        increment *= 10;
+        increment = 1.0;
       }
       if (buttons & BUTTON_LEFT)
       {
@@ -327,7 +331,7 @@ void Tune_Sp()
 // ************************************************
 void TuneP()
 {
-   lcd.setBacklight(TEAL);
+   //lcd.setBacklight(TEAL);
    lcd.print(F("Set Kp"));
 
    uint8_t buttons = 0;
@@ -336,10 +340,10 @@ void TuneP()
       buttons = ReadButtons();
 
       float increment = 1.0;
-      if (buttons & BUTTON_SHIFT)
-      {
-        increment *= 10;
-      }
+      //if (buttons & BUTTON_SHIFT)
+      //{
+      //  increment *= 10;
+      //}
       if (buttons & BUTTON_LEFT)
       {
          opState = SETP;
@@ -381,7 +385,7 @@ void TuneP()
 // ************************************************
 void TuneI()
 {
-   lcd.setBacklight(TEAL);
+   //lcd.setBacklight(TEAL);
    lcd.print(F("Set Ki"));
 
    uint8_t buttons = 0;
@@ -390,10 +394,10 @@ void TuneI()
       buttons = ReadButtons();
 
       float increment = 0.01;
-      if (buttons & BUTTON_SHIFT)
-      {
-        increment *= 10;
-      }
+      //if (buttons & BUTTON_SHIFT)
+      //{
+      //  increment *= 10;
+      //}
       if (buttons & BUTTON_LEFT)
       {
          opState = TUNE_P;
@@ -435,7 +439,7 @@ void TuneI()
 // ************************************************
 void TuneD()
 {
-   lcd.setBacklight(TEAL);
+   //lcd.setBacklight(TEAL);
    lcd.print(F("Set Kd"));
 
    uint8_t buttons = 0;
@@ -443,10 +447,10 @@ void TuneD()
    {
       buttons = ReadButtons();
       float increment = 0.01;
-      if (buttons & BUTTON_SHIFT)
-      {
-        increment *= 10;
-      }
+      //if (buttons & BUTTON_SHIFT)
+      //{
+      //  increment *= 10;
+      //}
       if (buttons & BUTTON_LEFT)
       {
          opState = TUNE_I;
@@ -499,16 +503,16 @@ void Run()
    uint8_t buttons = 0;
    while(true)
    {
-      setBacklight();  // set backlight based on state
+      //setBacklight();  // set backlight based on state
 
       buttons = ReadButtons();
-      if ((buttons & BUTTON_SHIFT) 
-         && (buttons & BUTTON_RIGHT) 
-         && (abs(Input - Setpoint) < 0.5))  // Should be at steady-state
-      {
-         StartAutoTune();
-      }
-      else if (buttons & BUTTON_RIGHT)
+      //if ((buttons & BUTTON_SHIFT) 
+      //   && (buttons & BUTTON_RIGHT) 
+      //   && (abs(Input - Setpoint) < 0.5))  // Should be at steady-state
+      //{
+      //   StartAutoTune();
+      //}
+      if (buttons & BUTTON_RIGHT)
       {
         opState = SETP;
         return;
@@ -598,11 +602,11 @@ void DriveOutput()
   }
   if((onTime > 100) && (onTime > (now - windowStartTime)))
   {
-     digitalWrite(RelayPin,HIGH);
+     digitalWrite(RelayPin,LOW);
   }
   else
   {
-     digitalWrite(RelayPin,LOW);
+     digitalWrite(RelayPin,HIGH);
   }
 }
 
@@ -613,19 +617,19 @@ void setBacklight()
 {
    if (tuning)
    {
-      lcd.setBacklight(VIOLET); // Tuning Mode
+      //lcd.setBacklight(VIOLET); // Tuning Mode
    }
    else if (abs(Input - Setpoint) > 1.0)  
    {
-      lcd.setBacklight(RED);  // High Alarm - off by more than 1 degree
+      //lcd.setBacklight(RED);  // High Alarm - off by more than 1 degree
    }
    else if (abs(Input - Setpoint) > 0.2)  
    {
-      lcd.setBacklight(YELLOW);  // Low Alarm - off by more than 0.2 degrees
+      //lcd.setBacklight(YELLOW);  // Low Alarm - off by more than 0.2 degrees
    }
    else
    {
-      lcd.setBacklight(WHITE);  // We're on target!
+      //lcd.setBacklight(WHITE);  // We're on target!
    }
 }
 
@@ -670,7 +674,45 @@ void FinishAutoTune()
 // ************************************************
 uint8_t ReadButtons()
 {
-  uint8_t buttons = lcd.readButtons();
+  uint8_t buttons; //= lcd.readButtons();
+  int val = 0;
+  val = analogRead(0);    // read the input pin from the Shield
+  //Now choose
+  
+   if ( val >= (630-ERROR_WINDOW) and val <= (630+ERROR_WINDOW) ) { // 630
+     #ifdef DEBUG_ON
+     Serial.println("switch SELECT pressed/triggered");
+     #endif
+     buttons = BUTTON_SELECT;
+   }
+   else if ( val >= (410-ERROR_WINDOW) and val <= (410+ERROR_WINDOW) ) { // 430
+     #ifdef DEBUG_ON
+     Serial.println("switch LEFT pressed/triggered");
+     #endif
+     buttons = BUTTON_LEFT;
+   }
+   else if ( val >= (256-ERROR_WINDOW) and val <= (256+ERROR_WINDOW) ) { // 230
+     #ifdef DEBUG_ON
+     Serial.println("switch DOWN pressed/triggered");
+     #endif
+     buttons = BUTTON_DOWN;
+   }
+   else if ( val >= (100-ERROR_WINDOW) and val <= (100+ERROR_WINDOW) ) { // 230
+     #ifdef DEBUG_ON
+     Serial.println("switch UP pressed/triggered");
+     #endif
+     buttons = BUTTON_UP;
+   }
+   else if( val >= 0 and val <= (20+ERROR_WINDOW) )  {
+     #ifdef DEBUG_ON
+     Serial.println("switch RIGHT pressed/triggered");    
+     #endif
+     buttons = BUTTON_RIGHT;
+   }
+   else
+     buttons = 0;  // no button found to have been pushed
+  
+  
   if (buttons != 0)
   {
     lastInput = millis();
