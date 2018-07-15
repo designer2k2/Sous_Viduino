@@ -761,7 +761,7 @@ void LoadParameters()
    }
    if (isnan(Kp))
    {
-     Kp = 850;
+     Kp = 400;
    }
    if (isnan(Ki))
    {
